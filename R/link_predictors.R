@@ -29,7 +29,7 @@ get_non_edges_ori <- function(g){
 }
 
 get_non_edges <- function(g,targets){
-  names=V(g)
+  names=V(g)$name
   m <- as_adjacency_matrix(g, names = FALSE)
   for (x in targets){
     m[match(x[1],names),match(x[2],names)]=2
