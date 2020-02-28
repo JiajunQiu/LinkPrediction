@@ -22,12 +22,21 @@ globalVariables(c("nodeA", "nodeB", "scr", "spm"))
 #' @importFrom igraph as_adjacency_matrix
 #' @import Matrix
 #'
-get_non_edges <- function(g){
+get_non_edges_ori <- function(g){
   m <- as_adjacency_matrix(g, names = FALSE)
   m[lower.tri(m, diag = TRUE)] <- 1
   return(which(m == 0, arr.ind = TRUE))
 }
 
+get_non_edges <- function(g,targets){a
+  names=V(g)
+  m <- as_adjacency_matrix(g, names = FALSE)
+  for (x in targets){
+    m[match(x[1],names),match(x[2],names)]=2
+    }
+    
+  return(which(m == 2, arr.ind = TRUE))
+}
 
 # Neighbourhood-based link predictors -------------------------------------
 
@@ -58,8 +67,8 @@ get_non_edges <- function(g){
 #' @import Matrix
 #' @importFrom dplyr tibble %>% arrange desc
 #'
-lp_cn <- function(g){
-  non_edges <- get_non_edges(g)
+lp_cn <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   m <- as_adjacency_matrix(g, names = FALSE)
   cn <- m %*% m
   prediction <- tibble(nodeA = non_edges[, 1], nodeB = non_edges[, 2],
@@ -94,8 +103,8 @@ lp_cn <- function(g){
 #' @import Matrix
 #' @importFrom dplyr tibble %>% arrange desc
 #'
-lp_l3 <- function(g){
-  non_edges <- get_non_edges(g)
+lp_l3 <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   m <- as_adjacency_matrix(g, names = FALSE)
   
   # Degree-normalise the adjacency matrix
@@ -138,8 +147,8 @@ lp_l3 <- function(g){
 #' @importFrom igraph degree
 #' @importFrom dplyr tibble %>% arrange desc
 #'
-lp_pa <- function(g){
-  non_edges <- get_non_edges(g)
+lp_pa <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   pa <- degree(g) %*% t(degree(g))
   prediction <- tibble(nodeA = non_edges[, 1], nodeB = non_edges[, 2],
                        scr = pa[non_edges]) %>% 
@@ -167,8 +176,8 @@ lp_pa <- function(g){
 #' @import Matrix
 #' @importFrom dplyr tibble %>% arrange desc
 #'
-lp_igraph <- function(g, method){
-  non_edges <- get_non_edges(g)
+lp_igraph <- function(g, method,targets){
+  non_edges <- get_non_edges(g,targets)
   sim <- similarity(g, method = method)
   prediction <- tibble(nodeA = non_edges[, 1], nodeB = non_edges[, 2],
                        scr = sim[non_edges]) %>% 
@@ -199,7 +208,7 @@ lp_igraph <- function(g, method){
 #' 
 #' @export
 #'
-lp_jc <- function(g){
+lp_jc <- function(g,targets){
   prediction <- lp_igraph(g, method = "jaccard")
   return(prediction)
 }
@@ -227,7 +236,7 @@ lp_jc <- function(g){
 #' 
 #' @export
 #'
-lp_dice <- function(g){
+lp_dice <- function(g,targets){
   prediction <- lp_igraph(g, method = "dice")
   return(prediction)
 }
@@ -255,7 +264,7 @@ lp_dice <- function(g){
 #' 
 #' @export
 #'
-lp_aa <- function(g){
+lp_aa <- function(g,targets){
   prediction <- lp_igraph(g, method = "invlogweighted")
   return(prediction)
 }
@@ -287,8 +296,8 @@ lp_aa <- function(g){
 #' @importFrom dplyr tibble %>% arrange desc
 #' @importFrom purrr map2_dbl
 #'
-lp_ra <- function(g){
-  non_edges <- get_non_edges(g)
+lp_ra <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   # Compute the neighbourhoods of all nodes
   ne <- adjacent_vertices(g, v = V(g))
   
@@ -364,11 +373,11 @@ compute_ra <- function(ne, i, j){
 #' @import Matrix
 #' @importFrom dplyr tibble arrange desc
 #'
-lp_matrix <- function(g, m, type = "sim"){
+lp_matrix <- function(g, m, type = "sim",targets){
   if(!(type %in% c("sim", "dis"))){
     stop("Invalid type provided, valid types are 'sim' and 'dis'")
   }
-  non_edges <- get_non_edges(g)
+  non_edges <- get_non_edges(g,targets)
   prediction <- tibble(nodeA = non_edges[, 1], nodeB = non_edges[, 2],
                        scr = m[non_edges])
   
@@ -416,7 +425,7 @@ lp_matrix <- function(g, m, type = "sim"){
 #' @importFrom RSpectra svds
 #' @importFrom stats dist
 #'
-lp_isomap <- function(g, d = 2, use_weights = FALSE){
+lp_isomap <- function(g, d = 2, use_weights = FALSE,targets){
   # Kernel computation
   if(use_weights){
     sp <- distances(g)  
@@ -478,7 +487,7 @@ lp_isomap <- function(g, d = 2, use_weights = FALSE){
 #' @importFrom RSpectra eigs_sym
 #' @importFrom stats dist
 #'
-lp_leig <- function(g, d = 2, use_weights = FALSE){
+lp_leig <- function(g, d = 2, use_weights = FALSE,targets){
   # Laplacian matrix computation
   if(use_weights){
     L <- laplacian_matrix(g)  
@@ -534,7 +543,7 @@ lp_leig <- function(g, d = 2, use_weights = FALSE){
 #' @importFrom RSpectra svds
 #' @importFrom stats dist
 #'
-lp_mce <- function(g, d = 2, centre = FALSE, use_weights = FALSE){
+lp_mce <- function(g, d = 2, centre = FALSE, use_weights = FALSE,targets){
   # Kernel computation
   if(use_weights){
     g_mst <- mst(g)  
@@ -597,7 +606,7 @@ lp_mce <- function(g, d = 2, centre = FALSE, use_weights = FALSE){
 #' @importFrom igraph predict_edges
 #' @importFrom dplyr tibble %>% arrange desc
 #'
-lp_hrg <- function(g, samples = 1000){
+lp_hrg <- function(g, samples = 1000,targets){
    hrg_pred <- predict_edges(g, num.samples = samples)
    prediction <- tibble(nodeA = hrg_pred$edges[, 1], 
                         nodeB = hrg_pred$edges[, 2],
@@ -637,8 +646,8 @@ lp_hrg <- function(g, samples = 1000){
 #' @importFrom dplyr tibble %>% arrange desc
 #' @importFrom purrr map2_dbl
 #'
-lp_car <- function(g){
-  non_edges <- get_non_edges(g)
+lp_car <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   
   # Compute the neighbourhoods of all nodes
   ne <- adjacent_vertices(g, v = V(g))
@@ -712,8 +721,8 @@ compute_car <- function(ne, i, j){
 #' @importFrom dplyr tibble %>% arrange desc
 #' @importFrom purrr map2_dbl
 #'
-lp_cpa <- function(g){
-  non_edges <- get_non_edges(g)
+lp_cpa <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   
   # Compute the neighbourhoods and degrees of all nodes
   ne <- adjacent_vertices(g, v = V(g))
@@ -793,8 +802,8 @@ compute_cpa <- function(ne, i, j){
 #' @importFrom dplyr tibble %>% arrange desc
 #' @importFrom purrr map2_dbl
 #'
-lp_caa <- function(g){
-  non_edges <- get_non_edges(g)
+lp_caa <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   
   # Compute the neighbourhoods and degrees of all nodes
   ne <- adjacent_vertices(g, v = V(g))
@@ -835,8 +844,8 @@ lp_caa <- function(g){
 #' @importFrom dplyr tibble %>% arrange desc
 #' @importFrom purrr map2_dbl
 #'
-lp_cra <- function(g){
-  non_edges <- get_non_edges(g)
+lp_cra <- function(g,targets){
+  non_edges <- get_non_edges(g,targets)
   
   # Compute the neighbourhoods and degrees of all nodes
   ne <- adjacent_vertices(g, v = V(g))
@@ -927,7 +936,7 @@ compute_caa_ra <- function(ne, i, j, type = "CAA"){
 #' @importFrom RSpectra eigs_sym
 #' @importFrom dplyr tibble %>% arrange desc
 #'
-lp_spm <- function(g, p_H = 0.1, epochs = 10, k = NA){
+lp_spm <- function(g, p_H = 0.1, epochs = 10, k = NA,targets){
   # Make weights 1 to ensure functionality
   E(g)$weight <- 1
   
@@ -973,7 +982,7 @@ lp_spm <- function(g, p_H = 0.1, epochs = 10, k = NA){
   # structure too much and A and A_perturbed should be close to each other
   A_perturbed <- A_perturbed / epochs
   
-  non_edges <- get_non_edges(g)
+  non_edges <- get_non_edges(g,targets)
   
   prediction <- tibble(nodeA = non_edges[, 1], nodeB = non_edges[, 2],
                        scr = A_perturbed[non_edges]) %>% arrange(desc(scr))
@@ -1012,7 +1021,7 @@ lp_spm <- function(g, p_H = 0.1, epochs = 10, k = NA){
 #' @importFrom RSpectra eigs_sym
 #' @importFrom dplyr tibble %>% arrange desc
 #'
-structural_consistency <- function(g, p_H = 0.1, epochs = 100, k = NA){
+structural_consistency <- function(g, p_H = 0.1, epochs = 100, k = NA,targets){
   # Make weights 1 to ensure functionality
   E(g)$weight <- 1
   
@@ -1052,7 +1061,7 @@ structural_consistency <- function(g, p_H = 0.1, epochs = 100, k = NA){
     # Perturb A_R but keep eigenvectors unchanged
     A_perturbed <- XLX$vectors %*% diag(XLX$values + dlt_l) %*% t(XLX$vectors)
     
-    non_edges <- get_non_edges(g_perturbed)
+    non_edges <- get_non_edges(g_perturbed,targets)
     
     prediction <- tibble(nodeA = non_edges[, 1], nodeB = non_edges[, 2], 
                          spm = A_perturbed[non_edges]) %>% arrange(desc(spm))
