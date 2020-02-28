@@ -28,7 +28,7 @@ get_non_edges_ori <- function(g){
   return(which(m == 0, arr.ind = TRUE))
 }
 
-get_non_edges <- function(g,targets){a
+get_non_edges <- function(g,targets){
   names=V(g)
   m <- as_adjacency_matrix(g, names = FALSE)
   for (x in targets){
