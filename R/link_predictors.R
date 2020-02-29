@@ -208,8 +208,8 @@ lp_igraph <- function(g, method,ts){
 #' 
 #' @export
 #'
-lp_jc <- function(g){
-  prediction <- lp_igraph(g, method = "jaccard")
+lp_jc <- function(g,ts){
+  prediction <- lp_igraph(g, method = "jaccard",ts)
   return(prediction)
 }
 
@@ -236,8 +236,8 @@ lp_jc <- function(g){
 #' 
 #' @export
 #'
-lp_dice <- function(g){
-  prediction <- lp_igraph(g, method = "dice")
+lp_dice <- function(g,ts){
+  prediction <- lp_igraph(g, method = "dice",ts)
   return(prediction)
 }
 
@@ -264,8 +264,8 @@ lp_dice <- function(g){
 #' 
 #' @export
 #'
-lp_aa <- function(g){
-  prediction <- lp_igraph(g, method = "invlogweighted")
+lp_aa <- function(g,ts){
+  prediction <- lp_igraph(g, method = "invlogweighted",ts)
   return(prediction)
 }
 
@@ -425,7 +425,7 @@ lp_matrix <- function(g, m, type = "sim",ts){
 #' @importFrom RSpectra svds
 #' @importFrom stats dist
 #'
-lp_isomap <- function(g, d = 2, use_weights = FALSE){
+lp_isomap <- function(g, d = 2, use_weights = FALSE,ts){
   # Kernel computation
   if(use_weights){
     sp <- distances(g)  
@@ -449,7 +449,7 @@ lp_isomap <- function(g, d = 2, use_weights = FALSE){
   D <- as.matrix(dist(x = node_coords, method = "euclidean"))
   
   # Predict edges based on node distances in the embedding space
-  prediction <- lp_matrix(g, m = D, type = "dis")
+  prediction <- lp_matrix(g, m = D, type = "dis",ts)
   
   return(prediction)
 }
@@ -487,7 +487,7 @@ lp_isomap <- function(g, d = 2, use_weights = FALSE){
 #' @importFrom RSpectra eigs_sym
 #' @importFrom stats dist
 #'
-lp_leig <- function(g, d = 2, use_weights = FALSE){
+lp_leig <- function(g, d = 2, use_weights = FALSE,ts){
   # Laplacian matrix computation
   if(use_weights){
     L <- laplacian_matrix(g)  
@@ -502,7 +502,7 @@ lp_leig <- function(g, d = 2, use_weights = FALSE){
   D <- as.matrix(dist(x = leig$vectors[, 1:d], method = "euclidean"))
   
   # Predict edges based on node distances in the embedding space
-  prediction <- lp_matrix(g, m = D, type = "dis")
+  prediction <- lp_matrix(g, m = D, type = "dis",ts)
   
   return(prediction)
 }
@@ -543,7 +543,7 @@ lp_leig <- function(g, d = 2, use_weights = FALSE){
 #' @importFrom RSpectra svds
 #' @importFrom stats dist
 #'
-lp_mce <- function(g, d = 2, centre = FALSE, use_weights = FALSE){
+lp_mce <- function(g, d = 2, centre = FALSE, use_weights = FALSE,ts){
   # Kernel computation
   if(use_weights){
     g_mst <- mst(g)  
@@ -572,7 +572,7 @@ lp_mce <- function(g, d = 2, centre = FALSE, use_weights = FALSE){
   D <- as.matrix(dist(x = node_coords, method = "euclidean"))
   
   # Predict edges based on node distances in the embedding space
-  prediction <- lp_matrix(g, m = D, type = "dis")
+  prediction <- lp_matrix(g, m = D, type = "dis",ts)
   
   return(prediction)
 }
